@@ -12,8 +12,8 @@ export default function VirtualCard() {
         phone: "+33 6 12 34 56 78",
         email: "contact@vtc-flow.fr",
         vehicle: "Mercedes-Benz Classe E",
-        // Fake public booking URL
-        bookingUrl: "https://vtc-flow.vercel.app/book/walid-premium"
+        // The public URL that people scan
+        bookingUrl: `${window.location.origin}?card=1`
     };
 
     const handleCopy = () => {

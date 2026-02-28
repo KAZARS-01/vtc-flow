@@ -12,9 +12,18 @@ import {
 import QuickQuote from './components/QuickQuote'
 import Dashboard from './components/Dashboard'
 import VirtualCard from './components/VirtualCard'
+import PublicCardView from './components/PublicCardView'
 
 function App() {
-  const [activeTab, setActiveTab] = useState('quote')
+  const [activeTab, setActiveTab] = useState('quote');
+
+  // Simple "Router" for the public business card
+  const urlParams = new URLSearchParams(window.location.search);
+  const isPublicCard = urlParams.get('card') === '1';
+
+  if (isPublicCard) {
+    return <PublicCardView />;
+  }
 
   return (
     <div className="app-layout">
