@@ -8,6 +8,34 @@ export default function QuickQuote() {
     const [isGenerated, setIsGenerated] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
     const [pdfData, setPdfData] = useState<any>(null);
+    const [clientEmail, setClientEmail] = useState('');
+    const [isSending, setIsSending] = useState(false);
+    const [emailSent, setEmailSent] = useState(false);
+
+    const handleSendEmail = async () => {
+        if (!clientEmail) return;
+        setIsSending(true);
+        const apiUrl = import.meta.env.MODE === 'production'
+            ? 'https://vtc-flow-backend.onrender.com/api/v1/documents/send-email'
+            : 'http://localhost:5001/api/v1/documents/send-email';
+
+        try {
+            await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    email: clientEmail,
+                    document_url: pdfData.pdf_url,
+                    document_type: documentType === 'MISSION_ORDER' ? 'Bon de Commande' : documentType === 'QUOTE' ? 'Devis' : 'Facture'
+                })
+            });
+            setEmailSent(true);
+        } catch (error) {
+            console.error('Email API Error:', error);
+        } finally {
+            setIsSending(false);
+        }
+    };
 
     const handleGenerate = async () => {
         setIsGenerating(true);
@@ -60,17 +88,43 @@ export default function QuickQuote() {
                     {documentType === 'MISSION_ORDER' && 'Document validé via Hash SHA-256. Légalement conforme (L3121-2).'}
                     {documentType !== 'MISSION_ORDER' && 'Document édité et sauvegardé.'}
                     {pdfData && (
-                        <>
-                            <br /><br />
-                            <a href={pdfData.pdf_url} target="_blank" rel="noreferrer" style={{ textDecoration: 'underline' }}>
-                                Télécharger PDF
+                        <div style={{ marginTop: '24px', display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'center', width: '100%' }}>
+                            <a href={pdfData.pdf_url} target="_blank" rel="noreferrer" className="btn btn-secondary" style={{ width: '100%', justifyContent: 'center' }}>
+                                📄 Ouvrir le PDF
                             </a>
-                        </>
+
+                            {!emailSent ? (
+                                <div style={{ width: '100%', display: 'flex', gap: '8px' }}>
+                                    <input
+                                        type="email"
+                                        className="input-field"
+                                        placeholder="Email client..."
+                                        style={{ flex: 1, padding: '12px', fontSize: '14px' }}
+                                        value={clientEmail}
+                                        onChange={(e) => setClientEmail(e.target.value)}
+                                    />
+                                    <button
+                                        className="btn btn-primary"
+                                        onClick={handleSendEmail}
+                                        disabled={isSending || !clientEmail}
+                                        style={{ padding: '0 20px', minWidth: '100px', display: 'flex', justifyContent: 'center' }}
+                                    >
+                                        {isSending ? '...' : 'Email'}
+                                    </button>
+                                </div>
+                            ) : (
+                                <div style={{ color: 'var(--accent-neon)', fontSize: '14px', fontWeight: 'bold', padding: '12px', background: 'rgba(0, 230, 118, 0.1)', borderRadius: '8px', width: '100%' }}>
+                                    ✅ Envoyé avec succès !
+                                </div>
+                            )}
+                        </div>
                     )}
                 </p>
                 <button className="btn btn-secondary" onClick={() => {
                     setIsGenerated(false);
                     setPdfData(null);
+                    setEmailSent(false);
+                    setClientEmail('');
                 }}>
                     Nouveau Devis
                 </button>

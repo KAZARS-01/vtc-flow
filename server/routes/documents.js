@@ -3,6 +3,9 @@ const router = express.Router();
 const crypto = require('crypto');
 const { db } = require('../config/db');
 const { generateMissionOrderPDF, generateInvoicePDF, generateQuotePDF } = require('../utils/pdfGenerator');
+const { Resend } = require('resend');
+
+const resend = new Resend(process.env.RESEND_API_KEY || 're_mock_key');
 
 // POST /api/v1/documents/generate-mission-order
 router.post('/generate-mission-order', async (req, res) => {
@@ -90,6 +93,41 @@ router.post('/generate-quote', async (req, res) => {
     } catch (error) {
         console.error('Error:', error);
         res.status(500).json({ status: 'error', message: 'Failed to generate quote.' });
+    }
+});
+
+// POST /api/v1/documents/send-email
+router.post('/send-email', async (req, res) => {
+    try {
+        const { email, document_url, document_type } = req.body;
+
+        if (!process.env.RESEND_API_KEY) {
+            console.log(`\n[MOCK EMAIL] Sent ${document_type} to ${email} with link ${document_url}\n`);
+            return res.status(200).json({ status: 'success', message: 'Mock email sent (API Key missing)' });
+        }
+
+        const { data, error } = await resend.emails.send({
+            from: 'VTC-Flow <onboarding@resend.dev>',
+            to: [email],
+            subject: `Votre ${document_type} - VTC-Flow`,
+            html: `
+                <div style="font-family: Arial, sans-serif; padding: 20px;">
+                    <h3>Bonjour,</h3>
+                    <p>Veuillez trouver ci-joint votre document légal (${document_type}):</p>
+                    <a href="${document_url}" style="display:inline-block; padding:10px 20px; background:#00E676; color:#000; text-decoration:none; border-radius:5px; font-weight:bold;">Télécharger le PDF</a>
+                    <p style="margin-top:20px; color:#888;">Merci de votre confiance. <br/>L'équipe VTC-Flow.</p>
+                </div>
+            `
+        });
+
+        if (error) {
+            return res.status(400).json({ status: 'error', message: error.message });
+        }
+
+        res.status(200).json({ status: 'success', data });
+    } catch (error) {
+        console.error('Email Error:', error);
+        res.status(500).json({ status: 'error', message: 'Failed to send email.' });
     }
 });
 
