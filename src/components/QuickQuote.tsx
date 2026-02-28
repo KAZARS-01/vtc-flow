@@ -4,16 +4,21 @@ import './QuickQuote.css';
 
 export default function QuickQuote() {
     const [pricingMode, setPricingMode] = useState<'FIXED' | 'HOURLY'>('FIXED');
+    const [documentType, setDocumentType] = useState<'MISSION_ORDER' | 'QUOTE' | 'INVOICE'>('MISSION_ORDER');
     const [isGenerated, setIsGenerated] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
     const [pdfData, setPdfData] = useState<any>(null);
 
     const handleGenerate = async () => {
         setIsGenerating(true);
+        let endpoint = '/api/v1/documents/generate-mission-order';
+        if (documentType === 'QUOTE') endpoint = '/api/v1/documents/generate-quote';
+        if (documentType === 'INVOICE') endpoint = '/api/v1/documents/generate-invoice';
+
         // Use relative URL for Vercel/Render proxy or direct backend URL in prod
         const apiUrl = import.meta.env.MODE === 'production'
-            ? 'https://vtc-flow-backend.onrender.com/api/v1/documents/generate-mission-order'
-            : 'http://localhost:5001/api/v1/documents/generate-mission-order';
+            ? `https://vtc-flow-backend.onrender.com${endpoint}`
+            : `http://localhost:5001${endpoint}`;
 
         try {
             const response = await fetch(apiUrl, {
@@ -46,9 +51,14 @@ export default function QuickQuote() {
         return (
             <div className="quick-quote-container animate-fade-in" style={{ alignItems: 'center', justifyContent: 'center', height: '60vh' }}>
                 <CheckCircle2 size={80} color="var(--accent-neon)" style={{ marginBottom: '24px', filter: 'drop-shadow(0 0 15px rgba(0, 230, 118, 0.4))' }} />
-                <h2 style={{ fontSize: '32px', marginBottom: '16px' }}>Bon de Commande Généré</h2>
+                <h2 style={{ fontSize: '32px', marginBottom: '16px' }}>
+                    {documentType === 'MISSION_ORDER' && 'Bon de Commande Généré'}
+                    {documentType === 'QUOTE' && 'Devis Généré'}
+                    {documentType === 'INVOICE' && 'Facture Générée'}
+                </h2>
                 <p style={{ color: 'var(--text-muted)', marginBottom: '32px', textAlign: 'center' }}>
-                    Document validé via Hash SHA-256.<br />Légalement conforme (L3121-2).
+                    {documentType === 'MISSION_ORDER' && 'Document validé via Hash SHA-256. Légalement conforme (L3121-2).'}
+                    {documentType !== 'MISSION_ORDER' && 'Document édité et sauvegardé.'}
                     {pdfData && (
                         <>
                             <br /><br />
@@ -71,6 +81,14 @@ export default function QuickQuote() {
     return (
         <>
             <div className="quick-quote-container">
+
+                {/* Document Type Selector */}
+                <div className="pricing-tabs" style={{ marginBottom: '16px' }}>
+                    <div className={`pricing-tab ${documentType === 'MISSION_ORDER' ? 'active' : ''}`} onClick={() => setDocumentType('MISSION_ORDER')} style={{ fontSize: '12px' }}>Bon Cmd</div>
+                    <div className={`pricing-tab ${documentType === 'QUOTE' ? 'active' : ''}`} onClick={() => setDocumentType('QUOTE')} style={{ fontSize: '12px' }}>Devis</div>
+                    <div className={`pricing-tab ${documentType === 'INVOICE' ? 'active' : ''}`} onClick={() => setDocumentType('INVOICE')} style={{ fontSize: '12px' }}>Facture</div>
+                </div>
+
                 {/* Card 1: Itinerary */}
                 <div className="glass-panel" style={{ padding: '24px' }}>
                     <div className="map-placeholder">
@@ -143,8 +161,8 @@ export default function QuickQuote() {
                     <div className="swipe-icon">
                         {isGenerating ? <Clock size={24} className="animate-spin" /> : <ChevronRight size={24} strokeWidth={3} />}
                     </div>
-                    <span style={{ marginLeft: '40px', letterSpacing: '0.5px' }}>
-                        {isGenerating ? 'GÉNÉRATION EN COURS...' : 'GÉNÉRER BON DE COMMANDE'}
+                    <span style={{ marginLeft: '40px', letterSpacing: '0.5px', fontSize: '14px' }}>
+                        {isGenerating ? 'GÉNÉRATION EN COURS...' : `GÉNÉRER ${documentType === 'MISSION_ORDER' ? 'LE BON' : documentType === 'QUOTE' ? 'LE DEVIS' : 'LA FACTURE'}`}
                     </span>
                 </div>
             </div>

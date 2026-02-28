@@ -75,4 +75,92 @@ const generateMissionOrderPDF = async (document_id, bookingData, compliance_hash
     });
 };
 
-module.exports = { generateMissionOrderPDF };
+const generateInvoicePDF = async (invoice_number, bookingData) => {
+    return new Promise((resolve, reject) => {
+        try {
+            const doc = new PDFDocument({ margin: 50 });
+            const docsDir = path.join(__dirname, '../public/docs');
+            if (!fs.existsSync(docsDir)) fs.mkdirSync(docsDir, { recursive: true });
+
+            const fileName = `facture_${invoice_number}.pdf`;
+            const filePath = path.join(docsDir, fileName);
+            const stream = fs.createWriteStream(filePath);
+            doc.pipe(stream);
+
+            doc.fontSize(20).text('FACTURE', { align: 'right' });
+            doc.moveDown();
+            doc.fontSize(12).text(`N° Facture: ${invoice_number}`, { align: 'right' });
+            doc.text(`Date: ${new Date().toLocaleDateString('fr-FR')}`, { align: 'right' });
+            doc.moveDown(2);
+
+            doc.fontSize(12).text('ÉMETTEUR:', { underline: true });
+            doc.fontSize(10).text('VTC-Flow Operator');
+            doc.text('SIRET: XXX XXX XXX XXXXX');
+            doc.moveDown();
+
+            doc.fontSize(12).text('CLIENT:', { underline: true });
+            doc.fontSize(10).text(`Nom: ${bookingData.client_details?.name || 'Inconnu'}`);
+            doc.moveDown(2);
+
+            doc.fontSize(12).text('DÉTAIL DE LA PRESTATION:', { underline: true });
+            doc.fontSize(10).text(`Course du ${new Date().toLocaleDateString('fr-FR')}`);
+            doc.text(`Trajet: ${bookingData.route?.pickup_address} -> ${bookingData.route?.dropoff_address}`);
+            doc.moveDown();
+
+            let amount = bookingData.amount || 65.00;
+            doc.fontSize(12).text(`Total TTC: ${amount} €`, { align: 'right', bold: true });
+
+            doc.end();
+            stream.on('finish', () => resolve(`/docs/${fileName}`));
+            stream.on('error', (err) => reject(err));
+        } catch (error) {
+            reject(error);
+        }
+    });
+};
+
+const generateQuotePDF = async (quote_number, bookingData) => {
+    return new Promise((resolve, reject) => {
+        try {
+            const doc = new PDFDocument({ margin: 50 });
+            const docsDir = path.join(__dirname, '../public/docs');
+            if (!fs.existsSync(docsDir)) fs.mkdirSync(docsDir, { recursive: true });
+
+            const fileName = `devis_${quote_number}.pdf`;
+            const filePath = path.join(docsDir, fileName);
+            const stream = fs.createWriteStream(filePath);
+            doc.pipe(stream);
+
+            doc.fontSize(20).text('DEVIS', { align: 'right' });
+            doc.moveDown();
+            doc.fontSize(12).text(`N° Devis: ${quote_number}`, { align: 'right' });
+            doc.text(`Date: ${new Date().toLocaleDateString('fr-FR')}`, { align: 'right' });
+            doc.moveDown(2);
+
+            doc.fontSize(12).text('ÉMETTEUR:', { underline: true });
+            doc.fontSize(10).text('VTC-Flow Operator');
+            doc.text('SIRET: XXX XXX XXX XXXXX');
+            doc.moveDown();
+
+            doc.fontSize(12).text('CLIENT:', { underline: true });
+            doc.fontSize(10).text(`Nom: ${bookingData.client_details?.name || 'Inconnu'}`);
+            doc.moveDown(2);
+
+            doc.fontSize(12).text('DÉTAIL DE LA PRESTATION ESTIMÉE:', { underline: true });
+            doc.fontSize(10).text(`Trajet: ${bookingData.route?.pickup_address} -> ${bookingData.route?.dropoff_address}`);
+            doc.moveDown();
+
+            let amount = bookingData.amount || 65.00;
+            doc.fontSize(12).text(`Total TTC Estimé: ${amount} €`, { align: 'right', bold: true });
+            doc.text('Valable 30 jours', { align: 'right', size: 8 });
+
+            doc.end();
+            stream.on('finish', () => resolve(`/docs/${fileName}`));
+            stream.on('error', (err) => reject(err));
+        } catch (error) {
+            reject(error);
+        }
+    });
+};
+
+module.exports = { generateMissionOrderPDF, generateInvoicePDF, generateQuotePDF };
