@@ -4,6 +4,7 @@ const crypto = require('crypto');
 const { db } = require('../config/db');
 const { generateMissionOrderPDF, generateInvoicePDF, generateQuotePDF } = require('../utils/pdfGenerator');
 const { Resend } = require('resend');
+const { Parser } = require('json2csv');
 
 const resend = new Resend(process.env.RESEND_API_KEY || 're_mock_key');
 
@@ -129,6 +130,52 @@ router.post('/send-email', async (req, res) => {
         console.error('Email Error:', error);
         res.status(500).json({ status: 'error', message: 'Failed to send email.' });
     }
+});
+
+// GET /api/v1/documents/export-invoices-csv
+router.get('/export-invoices-csv', (req, res) => {
+    db.all('SELECT * FROM invoices ORDER BY created_at DESC', [], (err, rows) => {
+        if (err) {
+            console.error('DB Error:', err.message);
+            return res.status(500).json({ status: 'error', message: 'Database error' });
+        }
+
+        try {
+            if (!rows || rows.length === 0) return res.status(404).send('No data available');
+            const json2csvParser = new Parser();
+            const csv = json2csvParser.parse(rows);
+
+            res.header('Content-Type', 'text/csv');
+            res.attachment('export_factures_vtc_flow.csv');
+            return res.send(csv);
+        } catch (err) {
+            console.error('CSV parse error:', err);
+            return res.status(500).send('Error generating CSV');
+        }
+    });
+});
+
+// GET /api/v1/documents/export-bookings-csv
+router.get('/export-bookings-csv', (req, res) => {
+    db.all('SELECT * FROM bookings ORDER BY created_at DESC', [], (err, rows) => {
+        if (err) {
+            console.error('DB Error:', err.message);
+            return res.status(500).json({ status: 'error', message: 'Database error' });
+        }
+
+        try {
+            if (!rows || rows.length === 0) return res.status(404).send('No data available');
+            const json2csvParser = new Parser();
+            const csv = json2csvParser.parse(rows);
+
+            res.header('Content-Type', 'text/csv');
+            res.attachment('export_courses_vtc_flow.csv');
+            return res.send(csv);
+        } catch (err) {
+            console.error('CSV parse error:', err);
+            return res.status(500).send('Error generating CSV');
+        }
+    });
 });
 
 module.exports = router;
