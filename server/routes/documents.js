@@ -8,6 +8,13 @@ const { Parser } = require('json2csv');
 
 const resend = new Resend(process.env.RESEND_API_KEY || 're_mock_key');
 
+// Helper to determine the base URL
+const getBaseUrl = () => {
+    return process.env.RAILWAY_PUBLIC_DOMAIN
+        ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
+        : 'http://localhost:5001';
+};
+
 // POST /api/v1/documents/generate-mission-order
 router.post('/generate-mission-order', async (req, res) => {
     try {
@@ -20,7 +27,7 @@ router.post('/generate-mission-order', async (req, res) => {
         // Generate physical PDF file
         const docId = `doc-${Date.now()}`;
         const pdf_path = await generateMissionOrderPDF(docId, req.body, compliance_hash);
-        const pdf_url = `http://localhost:5001${pdf_path}`; // Using local dev server for now
+        const pdf_url = `${getBaseUrl()}${pdf_path}`;
 
         // Save to SQLite
         db.run(
@@ -54,7 +61,7 @@ router.post('/generate-invoice', async (req, res) => {
         const invoice_number = `F-${Date.now()}`;
 
         const pdf_path = await generateInvoicePDF(invoice_number, req.body);
-        const pdf_url = `http://localhost:5001${pdf_path}`;
+        const pdf_url = `${getBaseUrl()}${pdf_path}`;
 
         db.run(
             `INSERT INTO invoices (id, booking_id, invoice_number, client_name, amount, status) 
@@ -79,7 +86,7 @@ router.post('/generate-quote', async (req, res) => {
         const quote_number = `D-${Date.now()}`;
 
         const pdf_path = await generateQuotePDF(quote_number, req.body);
-        const pdf_url = `http://localhost:5001${pdf_path}`;
+        const pdf_url = `${getBaseUrl()}${pdf_path}`;
 
         db.run(
             `INSERT INTO quotes (id, quote_number, client_name, amount, status) 
