@@ -11,7 +11,7 @@ export default function QuickQuote() {
     const handleGenerate = async () => {
         setIsGenerating(true);
         // Use relative URL for Vercel/Render proxy or direct backend URL in prod
-        const apiUrl = process.env.NODE_ENV === 'production'
+        const apiUrl = import.meta.env.MODE === 'production'
             ? 'https://vtc-flow-backend.onrender.com/api/v1/documents/generate-mission-order'
             : 'http://localhost:5001/api/v1/documents/generate-mission-order';
 

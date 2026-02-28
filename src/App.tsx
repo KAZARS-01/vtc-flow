@@ -6,7 +6,6 @@ import {
   Users,
   Settings,
   Bell,
-  Search,
   Plus
 } from 'lucide-react'
 import QuickQuote from './components/QuickQuote'
