@@ -50,7 +50,10 @@ const generateMissionOrderPDF = async (document_id, bookingData, compliance_hash
             doc.fontSize(12).text('DÉTAILS DE LA COURSE:', { underline: true });
             doc.fontSize(10).text(`Lieu de prise en charge: ${bookingData.route?.pickup_address}`);
             doc.text(`Lieu de dépose: ${bookingData.route?.dropoff_address}`);
-            doc.text(`Date et Heure (Prise en charge): ${bookingData.route?.pickup_time}`);
+            if (bookingData.route?.distance) {
+                doc.text(`Distance Estimée: ${bookingData.route.distance} (Temps: ${bookingData.route.duration})`);
+            }
+            doc.text(`Date et Heure (Prise en charge): ${bookingData.route?.pickup_time || new Date().toISOString()}`);
             doc.text(`Date et Heure (Réservation): ${new Date().toISOString()}`); // Must be prior to pickup
             doc.moveDown(2);
 
@@ -108,6 +111,7 @@ const generateInvoicePDF = async (invoice_number, bookingData) => {
             doc.moveDown();
 
             let amount = bookingData.amount || 65.00;
+            if (typeof amount === 'number') amount = amount.toFixed(2);
             doc.fontSize(12).text(`Total TTC: ${amount} €`, { align: 'right', bold: true });
 
             doc.end();
@@ -151,6 +155,7 @@ const generateQuotePDF = async (quote_number, bookingData) => {
             doc.moveDown();
 
             let amount = bookingData.amount || 65.00;
+            if (typeof amount === 'number') amount = amount.toFixed(2);
             doc.fontSize(12).text(`Total TTC Estimé: ${amount} €`, { align: 'right', bold: true });
             doc.text('Valable 30 jours', { align: 'right', size: 8 });
 
