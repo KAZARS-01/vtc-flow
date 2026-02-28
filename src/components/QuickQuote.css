@@ -146,4 +146,31 @@
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
-/* Add an active swipe animation manually later, but visual styling is here */
+@media (max-width: 768px) {
+    .sticky-footer {
+        padding: 16px 20px;
+        bottom: 80px;
+        /* Sit right above the new bottom navigation bar */
+    }
+
+    .swipe-btn {
+        height: 56px;
+        font-size: 14px;
+    }
+
+    .swipe-icon {
+        width: 40px;
+        height: 40px;
+        left: 8px;
+    }
+
+    .quick-quote-container {
+        padding-bottom: 160px;
+        /* Extra space for the footer + nav bar */
+        gap: 16px;
+    }
+
+    .glass-panel {
+        padding: 16px !important;
+    }
+}
