@@ -15,9 +15,12 @@ export default function QuickQuote() {
     const handleSendEmail = async () => {
         if (!clientEmail) return;
         setIsSending(true);
-        const apiUrl = import.meta.env.MODE === 'production'
-            ? 'https://vtc-flow-backend.onrender.com/api/v1/documents/send-email'
-            : 'http://localhost:5001/api/v1/documents/send-email';
+        // If a custom API URL is set in env, use it. Otherwise, use relative path so Railway can proxy it automatically.
+        const apiUrl = import.meta.env.VITE_API_URL
+            ? `${import.meta.env.VITE_API_URL}/api/v1/documents/send-email`
+            : import.meta.env.MODE === 'production'
+                ? '/api/v1/documents/send-email'
+                : 'http://localhost:5001/api/v1/documents/send-email';
 
         try {
             await fetch(apiUrl, {
@@ -43,10 +46,12 @@ export default function QuickQuote() {
         if (documentType === 'QUOTE') endpoint = '/api/v1/documents/generate-quote';
         if (documentType === 'INVOICE') endpoint = '/api/v1/documents/generate-invoice';
 
-        // Use relative URL for Vercel/Render proxy or direct backend URL in prod
-        const apiUrl = import.meta.env.MODE === 'production'
-            ? `https://vtc-flow-backend.onrender.com${endpoint}`
-            : `http://localhost:5001${endpoint}`;
+        // Same logic for document generation
+        const apiUrl = import.meta.env.VITE_API_URL
+            ? `${import.meta.env.VITE_API_URL}${endpoint}`
+            : import.meta.env.MODE === 'production'
+                ? endpoint
+                : `http://localhost:5001${endpoint}`;
 
         try {
             const response = await fetch(apiUrl, {
