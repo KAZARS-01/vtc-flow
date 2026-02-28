@@ -6,10 +6,12 @@ import {
   Users,
   Settings,
   Bell,
-  Plus
+  Plus,
+  QrCode
 } from 'lucide-react'
 import QuickQuote from './components/QuickQuote'
 import Dashboard from './components/Dashboard'
+import VirtualCard from './components/VirtualCard'
 
 function App() {
   const [activeTab, setActiveTab] = useState('quote')
@@ -46,6 +48,13 @@ function App() {
             <span>Clients</span>
           </div>
           <div
+            className={`nav-item ${activeTab === 'card' ? 'active' : ''}`}
+            onClick={() => setActiveTab('card')}
+          >
+            <QrCode size={20} />
+            <span>Ma Carte Visite</span>
+          </div>
+          <div
             className={`nav-item ${activeTab === 'settings' ? 'active' : ''}`}
             onClick={() => setActiveTab('settings')}
           >
@@ -72,6 +81,7 @@ function App() {
             {activeTab === 'quote' && 'Créer un Bon de Commande'}
             {activeTab === 'dashboard' && 'Vue d\'Ensemble'}
             {activeTab === 'clients' && 'Base Clients'}
+            {activeTab === 'card' && 'Outil de Parrainage & Revente'}
             {activeTab === 'settings' && 'Configuration'}
           </h2>
           <div className="action-bar">
@@ -88,9 +98,8 @@ function App() {
         <div className="content-area animate-fade-in" style={{ animationDelay: '0.1s' }}>
           {/* Main Views will go here */}
           {activeTab === 'dashboard' && <Dashboard />}
-          {activeTab === 'quote' && (
-            <QuickQuote />
-          )}
+          {activeTab === 'quote' && <QuickQuote />}
+          {activeTab === 'card' && <VirtualCard />}
         </div>
       </main>
     </div>
