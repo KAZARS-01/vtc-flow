@@ -8,7 +8,8 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['vite.svg'],
+      injectRegister: 'script',
+      includeAssets: ['favicon.ico', 'icon-192.png', 'icon-512.png'],
       manifest: {
         name: 'VTC-Flow',
         short_name: 'VTC-Flow',
@@ -18,10 +19,14 @@ export default defineConfig({
         display: 'standalone',
         icons: [
           {
-            src: 'vite.svg',
-            sizes: '192x192 512x512',
-            type: 'image/svg+xml',
-            purpose: 'any maskable'
+            src: 'icon-192.png',
+            sizes: '192x192',
+            type: 'image/png'
+          },
+          {
+            src: 'icon-512.png',
+            sizes: '512x512',
+            type: 'image/png'
           }
         ]
       }
