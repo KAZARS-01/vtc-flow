@@ -13,9 +13,11 @@ import QuickQuote from './components/QuickQuote'
 import Dashboard from './components/Dashboard'
 import VirtualCard from './components/VirtualCard'
 import PublicCardView from './components/PublicCardView'
+import Clients from './components/Clients'
 
 function App() {
   const [activeTab, setActiveTab] = useState('quote');
+  const [showAddClient, setShowAddClient] = useState(false);
 
   // Simple "Router" for the public business card
   const urlParams = new URLSearchParams(window.location.search);
@@ -37,35 +39,35 @@ function App() {
         <nav className="nav-links">
           <div
             className={`nav-item ${activeTab === 'dashboard' ? 'active' : ''}`}
-            onClick={() => setActiveTab('dashboard')}
+            onClick={() => { setActiveTab('dashboard'); setShowAddClient(false); }}
           >
             <Car size={20} />
             <span>Tableau de Bord</span>
           </div>
           <div
             className={`nav-item ${activeTab === 'quote' ? 'active' : ''}`}
-            onClick={() => setActiveTab('quote')}
+            onClick={() => { setActiveTab('quote'); setShowAddClient(false); }}
           >
             <FileText size={20} />
             <span>Nouveau Devis</span>
           </div>
           <div
             className={`nav-item ${activeTab === 'clients' ? 'active' : ''}`}
-            onClick={() => setActiveTab('clients')}
+            onClick={() => { setActiveTab('clients'); setShowAddClient(false); }}
           >
             <Users size={20} />
             <span>Clients</span>
           </div>
           <div
             className={`nav-item ${activeTab === 'card' ? 'active' : ''}`}
-            onClick={() => setActiveTab('card')}
+            onClick={() => { setActiveTab('card'); setShowAddClient(false); }}
           >
             <QrCode size={20} />
             <span>Ma Carte Visite</span>
           </div>
           <div
             className={`nav-item ${activeTab === 'settings' ? 'active' : ''}`}
-            onClick={() => setActiveTab('settings')}
+            onClick={() => { setActiveTab('settings'); setShowAddClient(false); }}
           >
             <Settings size={20} />
             <span>Paramètres</span>
@@ -97,7 +99,7 @@ function App() {
             <button className="btn btn-secondary">
               <Bell size={18} />
             </button>
-            <button className="btn btn-primary">
+            <button className="btn btn-primary" onClick={() => { setActiveTab('clients'); setShowAddClient(true); }}>
               <Plus size={18} />
               Nouveau Client
             </button>
@@ -109,6 +111,7 @@ function App() {
           {activeTab === 'dashboard' && <Dashboard />}
           {activeTab === 'quote' && <QuickQuote />}
           {activeTab === 'card' && <VirtualCard />}
+          {activeTab === 'clients' && <Clients initialShowModal={showAddClient} />}
         </div>
       </main>
     </div>

@@ -23,6 +23,10 @@ export default function QuickQuote() {
     const [durationText, setDurationText] = useState('38 min');
     const [estimatedPrice, setEstimatedPrice] = useState(65);
 
+    // Fallback for manual entry if Google Maps is down
+    const [manualDeparture, setManualDeparture] = useState('Ma Position Actuelle 🎯');
+    const [manualArrival, setManualArrival] = useState('');
+
     // Google Maps Loader
     const { isLoaded } = useJsApiLoader({
         googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '',
@@ -124,11 +128,13 @@ export default function QuickQuote() {
             if (data.status === 'success') {
                 setPdfData(data.data);
                 setIsGenerated(true);
+            } else {
+                throw new Error(data.message || 'Erreur lors de la génération');
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('API Error:', error);
-            // Fallback for demo if server is off
-            setIsGenerated(true);
+            // Don't set isGenerated true if there is no data to show
+            alert(`Erreur: ${error.message || 'Le serveur ne répond pas'}`);
         } finally {
             setIsGenerating(false);
         }
@@ -219,10 +225,19 @@ export default function QuickQuote() {
                             />
                         ) : (
                             <div className="input-group">
-                                <label>Départ (Tap 1)</label>
+                                <label>Départ (Tap 1) - Manuel</label>
                                 <div style={{ position: 'relative' }}>
                                     <Navigation size={18} style={{ position: 'absolute', left: '16px', top: '16px', color: 'var(--accent-blue)' }} />
-                                    <input type="text" className="input-field" style={{ width: '100%', paddingLeft: '48px' }} defaultValue="Ma Position Actuelle 🎯" />
+                                    <input
+                                        type="text"
+                                        className="input-field"
+                                        style={{ width: '100%', paddingLeft: '48px' }}
+                                        value={manualDeparture}
+                                        onChange={(e) => {
+                                            setManualDeparture(e.target.value);
+                                            setDeparture({ address: e.target.value, lat: 0, lng: 0 });
+                                        }}
+                                    />
                                 </div>
                             </div>
                         )}
@@ -238,10 +253,20 @@ export default function QuickQuote() {
                             />
                         ) : (
                             <>
-                                <label>Arrivée (Tap 2)</label>
+                                <label>Arrivée (Tap 2) - Manuel</label>
                                 <div style={{ position: 'relative' }}>
                                     <MapPin size={18} style={{ position: 'absolute', left: '16px', top: '16px', color: 'var(--text-muted)' }} />
-                                    <input type="text" className="input-field" style={{ width: '100%', paddingLeft: '48px' }} placeholder="Saisir Destination (ex: Aéroport CDG)" />
+                                    <input
+                                        type="text"
+                                        className="input-field"
+                                        style={{ width: '100%', paddingLeft: '48px' }}
+                                        placeholder="Saisir Destination (ex: Aéroport CDG)"
+                                        value={manualArrival}
+                                        onChange={(e) => {
+                                            setManualArrival(e.target.value);
+                                            setArrival({ address: e.target.value, lat: 0, lng: 0 });
+                                        }}
+                                    />
                                 </div>
                             </>
                         )}

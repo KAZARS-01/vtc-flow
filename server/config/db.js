@@ -17,6 +17,8 @@ const db = new sqlite3.Database(dbPath, (err) => {
             pickup_address TEXT,
             dropoff_address TEXT,
             status TEXT,
+            is_recurring INTEGER DEFAULT 0,
+            recurring_type TEXT,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )`);
 
