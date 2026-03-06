@@ -1,10 +1,7 @@
-import { useState, useCallback, useEffect } from 'react';
-import { MapPin, Navigation, Clock, CheckCircle2, ChevronRight } from 'lucide-react';
-import { useJsApiLoader } from '@react-google-maps/api';
+import { useState, useEffect } from 'react';
+import { MapPin, Navigation, Clock, CheckCircle2, ChevronRight, Info } from 'lucide-react';
 import AddressAutocomplete from './AddressAutocomplete';
 import './QuickQuote.css';
-
-const LIBRARIES: "places"[] = ["places"];
 
 export default function QuickQuote() {
     const [pricingMode, setPricingMode] = useState<'FIXED' | 'HOURLY'>('FIXED');
@@ -19,55 +16,45 @@ export default function QuickQuote() {
     // Form Navigation & Maps State
     const [departure, setDeparture] = useState<{ address: string, lat: number, lng: number } | null>(null);
     const [arrival, setArrival] = useState<{ address: string, lat: number, lng: number } | null>(null);
-    const [distanceText, setDistanceText] = useState('24 km');
-    const [durationText, setDurationText] = useState('38 min');
-    const [estimatedPrice, setEstimatedPrice] = useState(65);
 
-    // Fallback for manual entry if Google Maps is down
-    const [manualDeparture, setManualDeparture] = useState('Ma Position Actuelle 🎯');
-    const [manualArrival, setManualArrival] = useState('');
+    // User can manually exit these if needed
+    const [distanceText, setDistanceText] = useState('0 km');
+    const [durationText, setDurationText] = useState('0 min');
+    const [estimatedPrice, setEstimatedPrice] = useState(0);
 
-    // Google Maps Loader
-    const { isLoaded } = useJsApiLoader({
-        googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '',
-        libraries: LIBRARIES
-    });
-
-    const calculateRoute = useCallback(() => {
-        if (!departure || !arrival || !isLoaded || !window.google) return;
-
-        const directionsService = new window.google.maps.DirectionsService();
-        directionsService.route(
-            {
-                origin: { lat: departure.lat, lng: departure.lng },
-                destination: { lat: arrival.lat, lng: arrival.lng },
-                travelMode: window.google.maps.TravelMode.DRIVING,
-            },
-            (result, status) => {
-                if (status === window.google.maps.DirectionsStatus.OK && result) {
-                    const route = result.routes[0].legs[0];
-                    if (route.distance && route.duration) {
-                        setDistanceText(route.distance.text);
-                        setDurationText(route.duration.text);
-                        // Simplified pricing model: 2€ base + 1.5€ per km + 0.3€ per min
-                        const distanceValue = route.distance.value / 1000; // km
-                        const durationValue = route.duration.value / 60; // mins
-                        const price = 2 + (distanceValue * 1.5) + (durationValue * 0.3);
-                        setEstimatedPrice(Math.round(price));
-                    }
-                }
-            }
-        );
-    }, [departure, arrival, isLoaded]);
-
+    // Calculate rough distance using Haversine formula (since Google is paid)
     useEffect(() => {
-        calculateRoute();
-    }, [calculateRoute]);
+        if (departure && arrival) {
+            const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+                const R = 6371; // Radius of the earth in km
+                const dLat = (lat2 - lat1) * Math.PI / 180;
+                const dLon = (lon2 - lon1) * Math.PI / 180;
+                const a =
+                    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+                const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+                const d = R * c; // Distance in km
+                return d;
+            };
+
+            const directDistance = calculateDistance(departure.lat, departure.lng, arrival.lat, arrival.lng);
+            // Multiplier for road distance (typically 1.25 to 1.4 in cities)
+            const roadDistance = Math.round(directDistance * 1.3);
+            const approxDuration = Math.round(roadDistance * 2.5); // 2.5 min/km average in city
+
+            setDistanceText(`${roadDistance} km`);
+            setDurationText(`${approxDuration} min`);
+
+            // Pricing: 5€ base + 2€/km + 0.5€/min (Walid's Premium Pricing)
+            const price = 5 + (roadDistance * 2.0) + (approxDuration * 0.5);
+            setEstimatedPrice(Math.max(35, Math.round(price))); // Minimum 35€
+        }
+    }, [departure, arrival]);
 
     const handleSendEmail = async () => {
         if (!clientEmail) return;
         setIsSending(true);
-        // If a custom API URL is set in env, use it. Otherwise, use relative path so Railway can proxy it automatically.
         const apiUrl = import.meta.env.VITE_API_URL
             ? `${import.meta.env.VITE_API_URL}/api/v1/documents/send-email`
             : import.meta.env.MODE === 'production'
@@ -93,12 +80,16 @@ export default function QuickQuote() {
     };
 
     const handleGenerate = async () => {
+        if (!departure || !arrival) {
+            alert("Veuillez saisir une adresse de départ et d'arrivée.");
+            return;
+        }
+
         setIsGenerating(true);
         let endpoint = '/api/v1/documents/generate-mission-order';
         if (documentType === 'QUOTE') endpoint = '/api/v1/documents/generate-quote';
         if (documentType === 'INVOICE') endpoint = '/api/v1/documents/generate-invoice';
 
-        // Same logic for document generation
         const apiUrl = import.meta.env.VITE_API_URL
             ? `${import.meta.env.VITE_API_URL}${endpoint}`
             : import.meta.env.MODE === 'production'
@@ -111,11 +102,11 @@ export default function QuickQuote() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     booking_id: `bkg-${Math.floor(Math.random() * 10000)}`,
-                    driver_id: 'drv-555',
+                    driver_id: 'drv-walid',
                     amount: estimatedPrice,
                     route: {
-                        pickup_address: departure ? departure.address : 'Non spécifié',
-                        dropoff_address: arrival ? arrival.address : 'Non spécifié',
+                        pickup_address: departure.address,
+                        dropoff_address: arrival.address,
                         distance: distanceText,
                         duration: durationText
                     },
@@ -133,7 +124,6 @@ export default function QuickQuote() {
             }
         } catch (error: any) {
             console.error('API Error:', error);
-            // Don't set isGenerated true if there is no data to show
             alert(`Erreur: ${error.message || 'Le serveur ne répond pas'}`);
         } finally {
             setIsGenerating(false);
@@ -145,53 +135,45 @@ export default function QuickQuote() {
             <div className="quick-quote-container animate-fade-in" style={{ alignItems: 'center', justifyContent: 'center', height: '60vh' }}>
                 <CheckCircle2 size={80} color="var(--accent-neon)" style={{ marginBottom: '24px', filter: 'drop-shadow(0 0 15px rgba(0, 230, 118, 0.4))' }} />
                 <h2 style={{ fontSize: '32px', marginBottom: '16px' }}>
-                    {documentType === 'MISSION_ORDER' && 'Bon de Commande Généré'}
-                    {documentType === 'QUOTE' && 'Devis Généré'}
-                    {documentType === 'INVOICE' && 'Facture Générée'}
+                    Document Prêt !
                 </h2>
-                <p style={{ color: 'var(--text-muted)', marginBottom: '32px', textAlign: 'center' }}>
-                    {documentType === 'MISSION_ORDER' && 'Document validé via Hash SHA-256. Légalement conforme (L3121-2).'}
-                    {documentType !== 'MISSION_ORDER' && 'Document édité et sauvegardé.'}
-                    {pdfData && (
-                        <div style={{ marginTop: '24px', display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'center', width: '100%' }}>
-                            <a href={pdfData.pdf_url} target="_blank" rel="noreferrer" className="btn btn-secondary" style={{ width: '100%', justifyContent: 'center' }}>
-                                📄 Ouvrir le PDF
-                            </a>
+                <div style={{ marginTop: '24px', display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'center', width: '100%' }}>
+                    <a href={pdfData.pdf_url} target="_blank" rel="noreferrer" className="btn btn-secondary" style={{ width: '100%', justifyContent: 'center' }}>
+                        📄 Ouvrir le PDF
+                    </a>
 
-                            {!emailSent ? (
-                                <div style={{ width: '100%', display: 'flex', gap: '8px' }}>
-                                    <input
-                                        type="email"
-                                        className="input-field"
-                                        placeholder="Email client..."
-                                        style={{ flex: 1, padding: '12px', fontSize: '14px' }}
-                                        value={clientEmail}
-                                        onChange={(e) => setClientEmail(e.target.value)}
-                                    />
-                                    <button
-                                        className="btn btn-primary"
-                                        onClick={handleSendEmail}
-                                        disabled={isSending || !clientEmail}
-                                        style={{ padding: '0 20px', minWidth: '100px', display: 'flex', justifyContent: 'center' }}
-                                    >
-                                        {isSending ? '...' : 'Email'}
-                                    </button>
-                                </div>
-                            ) : (
-                                <div style={{ color: 'var(--accent-neon)', fontSize: '14px', fontWeight: 'bold', padding: '12px', background: 'rgba(0, 230, 118, 0.1)', borderRadius: '8px', width: '100%' }}>
-                                    ✅ Envoyé avec succès !
-                                </div>
-                            )}
+                    {!emailSent ? (
+                        <div style={{ width: '100%', display: 'flex', gap: '8px' }}>
+                            <input
+                                type="email"
+                                className="input-field"
+                                placeholder="Email client..."
+                                style={{ flex: 1, padding: '12px', fontSize: '14px' }}
+                                value={clientEmail}
+                                onChange={(e) => setClientEmail(e.target.value)}
+                            />
+                            <button
+                                className="btn btn-primary"
+                                onClick={handleSendEmail}
+                                disabled={isSending || !clientEmail}
+                                style={{ padding: '0 20px', minWidth: '100px', display: 'flex', justifyContent: 'center' }}
+                            >
+                                {isSending ? '...' : 'Email'}
+                            </button>
+                        </div>
+                    ) : (
+                        <div style={{ color: 'var(--accent-neon)', fontSize: '14px', fontWeight: 'bold', padding: '12px', background: 'rgba(0, 230, 118, 0.1)', borderRadius: '8px', width: '100%' }}>
+                            ✅ Envoyé avec succès !
                         </div>
                     )}
-                </p>
-                <button className="btn btn-secondary" onClick={() => {
+                </div>
+                <button className="btn btn-secondary" style={{ marginTop: '32px' }} onClick={() => {
                     setIsGenerated(false);
                     setPdfData(null);
                     setEmailSent(false);
                     setClientEmail('');
                 }}>
-                    Nouveau Devis
+                    Nouveau Document
                 </button>
             </div>
         );
@@ -200,80 +182,32 @@ export default function QuickQuote() {
     return (
         <>
             <div className="quick-quote-container">
-
-                {/* Document Type Selector */}
                 <div className="pricing-tabs" style={{ marginBottom: '16px' }}>
                     <div className={`pricing-tab ${documentType === 'MISSION_ORDER' ? 'active' : ''}`} onClick={() => setDocumentType('MISSION_ORDER')} style={{ fontSize: '12px' }}>Bon Cmd</div>
                     <div className={`pricing-tab ${documentType === 'QUOTE' ? 'active' : ''}`} onClick={() => setDocumentType('QUOTE')} style={{ fontSize: '12px' }}>Devis</div>
                     <div className={`pricing-tab ${documentType === 'INVOICE' ? 'active' : ''}`} onClick={() => setDocumentType('INVOICE')} style={{ fontSize: '12px' }}>Facture</div>
                 </div>
 
-                {/* Card 1: Itinerary */}
                 <div className="glass-panel" style={{ padding: '24px' }}>
-                    <div className="map-placeholder">
-                        <MapPin size={18} style={{ marginRight: '8px' }} />
-                        <span>Carte: {isLoaded ? 'API Google Active' : 'En attente API Key...'}</span>
-                    </div>
-
                     <div style={{ marginBottom: '16px' }}>
-                        {isLoaded ? (
-                            <AddressAutocomplete
-                                label="Départ (Tap 1)"
-                                placeholder="Ma Position Actuelle 🎯"
-                                icon="navigation"
-                                onAddressSelect={(addr, lat, lng) => setDeparture({ address: addr, lat, lng })}
-                            />
-                        ) : (
-                            <div className="input-group">
-                                <label>Départ (Tap 1) - Manuel</label>
-                                <div style={{ position: 'relative' }}>
-                                    <Navigation size={18} style={{ position: 'absolute', left: '16px', top: '16px', color: 'var(--accent-blue)' }} />
-                                    <input
-                                        type="text"
-                                        className="input-field"
-                                        style={{ width: '100%', paddingLeft: '48px' }}
-                                        value={manualDeparture}
-                                        onChange={(e) => {
-                                            setManualDeparture(e.target.value);
-                                            setDeparture({ address: e.target.value, lat: 0, lng: 0 });
-                                        }}
-                                    />
-                                </div>
-                            </div>
-                        )}
+                        <AddressAutocomplete
+                            label="Départ (Prise en charge)"
+                            placeholder="Saisir adresse ou lieu..."
+                            icon="navigation"
+                            onAddressSelect={(addr, lat, lng) => setDeparture({ address: addr, lat, lng })}
+                        />
                     </div>
 
                     <div className="input-group" style={{ marginBottom: 0 }}>
-                        {isLoaded ? (
-                            <AddressAutocomplete
-                                label="Arrivée (Tap 2)"
-                                placeholder="Saisir Destination (ex: Aéroport CDG)"
-                                icon="mappin"
-                                onAddressSelect={(addr, lat, lng) => setArrival({ address: addr, lat, lng })}
-                            />
-                        ) : (
-                            <>
-                                <label>Arrivée (Tap 2) - Manuel</label>
-                                <div style={{ position: 'relative' }}>
-                                    <MapPin size={18} style={{ position: 'absolute', left: '16px', top: '16px', color: 'var(--text-muted)' }} />
-                                    <input
-                                        type="text"
-                                        className="input-field"
-                                        style={{ width: '100%', paddingLeft: '48px' }}
-                                        placeholder="Saisir Destination (ex: Aéroport CDG)"
-                                        value={manualArrival}
-                                        onChange={(e) => {
-                                            setManualArrival(e.target.value);
-                                            setArrival({ address: e.target.value, lat: 0, lng: 0 });
-                                        }}
-                                    />
-                                </div>
-                            </>
-                        )}
+                        <AddressAutocomplete
+                            label="Arrivée (Destination)"
+                            placeholder="Aéroport, Gare, Hôtel..."
+                            icon="mappin"
+                            onAddressSelect={(addr, lat, lng) => setArrival({ address: addr, lat, lng })}
+                        />
                     </div>
                 </div>
 
-                {/* Card 2: Dynamic Pricing */}
                 <div className="glass-panel" style={{ padding: '24px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-muted)', fontSize: '14px', marginBottom: '16px' }}>
                         <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><Navigation size={14} /> {distanceText}</span>
@@ -284,38 +218,18 @@ export default function QuickQuote() {
                         <div className="price-amount">
                             {estimatedPrice.toFixed(2)} <span className="price-currency">€</span>
                         </div>
-                        <p style={{ color: 'var(--accent-blue)', fontSize: '13px', fontWeight: 600 }}>Tarif Estimé</p>
-                    </div>
-
-                    <div className="pricing-tabs">
-                        <div
-                            className={`pricing-tab ${pricingMode === 'FIXED' ? 'active' : ''}`}
-                            onClick={() => setPricingMode('FIXED')}
-                        >
-                            Forfait Fixe
-                        </div>
-                        <div
-                            className={`pricing-tab ${pricingMode === 'HOURLY' ? 'active' : ''}`}
-                            onClick={() => setPricingMode('HOURLY')}
-                        >
-                            Mise à dispo (Horaire)
-                        </div>
+                        <p style={{ color: 'var(--accent-blue)', fontSize: '13px', fontWeight: 600 }}>Tarif Estimé (Base + Km + Min)</p>
                     </div>
                 </div>
 
-                {/* Card 3: Client Info */}
                 <div className="glass-panel" style={{ padding: '24px' }}>
-                    <div className="input-group" style={{ marginBottom: 0 }}>
-                        <label>Client (Optionnel)</label>
-                        <div style={{ display: 'flex', gap: '12px' }}>
-                            <input type="text" className="input-field" style={{ flex: 1 }} placeholder="Rechercher habitué ou tel..." />
-                            <button className="btn btn-secondary" style={{ padding: '0 16px' }}>+</button>
-                        </div>
+                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center', color: 'var(--accent-blue)', fontSize: '13px' }}>
+                        <Info size={16} />
+                        <span>Propulsé par l'API Adresse Nationale (GRATUIT)</span>
                     </div>
                 </div>
             </div>
 
-            {/* Sticky Footer: HUGE SWIPE BUTTON */}
             <div className="sticky-footer">
                 <div className="swipe-btn" onClick={handleGenerate} style={{ opacity: isGenerating ? 0.7 : 1 }}>
                     <div className="swipe-icon">
