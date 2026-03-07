@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
-import { MapPin, Navigation, Clock, CheckCircle2, ChevronRight, Info } from 'lucide-react';
+import { Navigation, Clock, CheckCircle2, ChevronRight, Info } from 'lucide-react';
 import AddressAutocomplete from './AddressAutocomplete';
 import './QuickQuote.css';
 
 export default function QuickQuote() {
-    const [pricingMode, setPricingMode] = useState<'FIXED' | 'HOURLY'>('FIXED');
     const [documentType, setDocumentType] = useState<'MISSION_ORDER' | 'QUOTE' | 'INVOICE'>('MISSION_ORDER');
     const [isGenerated, setIsGenerated] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
@@ -188,7 +187,7 @@ export default function QuickQuote() {
                     <div className={`pricing-tab ${documentType === 'INVOICE' ? 'active' : ''}`} onClick={() => setDocumentType('INVOICE')} style={{ fontSize: '12px' }}>Facture</div>
                 </div>
 
-                <div className="glass-panel" style={{ padding: '24px' }}>
+                <div className="glass-panel" style={{ padding: '24px', position: 'relative', zIndex: 10 }}>
                     <div style={{ marginBottom: '16px' }}>
                         <AddressAutocomplete
                             label="Départ (Prise en charge)"
@@ -208,7 +207,7 @@ export default function QuickQuote() {
                     </div>
                 </div>
 
-                <div className="glass-panel" style={{ padding: '24px' }}>
+                <div className="glass-panel" style={{ padding: '24px', position: 'relative', zIndex: 5 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-muted)', fontSize: '14px', marginBottom: '16px' }}>
                         <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><Navigation size={14} /> {distanceText}</span>
                         <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><Clock size={14} /> {durationText}</span>

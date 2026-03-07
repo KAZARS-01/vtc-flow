@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { MapPin, Navigation, Search } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { MapPin, Navigation } from 'lucide-react';
 
 interface AddressAutocompleteProps {
     label: string;
@@ -90,11 +90,26 @@ export default function AddressAutocomplete({ label, placeholder, icon, onAddres
                         listStyle: 'none',
                         margin: '4px 0 0 0',
                         padding: 0,
-                        zIndex: 100,
-                        boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
-                        maxHeight: '250px',
-                        overflowY: 'auto'
+                        zIndex: 1000,
+                        boxShadow: '0 10px 40px rgba(0,0,0,0.8), 0 0 20px rgba(0,230,118,0.1)',
+                        maxHeight: '260px',
+                        overflowY: 'auto',
+                        scrollbarWidth: 'thin',
+                        scrollbarColor: 'var(--accent-neon) transparent'
                     }}>
+                        <style>{`
+                            ul::-webkit-scrollbar {
+                                width: 6px;
+                            }
+                            ul::-webkit-scrollbar-track {
+                                background: transparent;
+                            }
+                            ul::-webkit-scrollbar-thumb {
+                                background: var(--accent-neon);
+                                border-radius: 10px;
+                                border: 2px solid rgba(9, 10, 15, 0.98);
+                            }
+                        `}</style>
                         {suggestions.map((feature, index) => (
                             <li
                                 key={index}
@@ -112,7 +127,7 @@ export default function AddressAutocomplete({ label, placeholder, icon, onAddres
                             >
                                 <strong style={{ fontSize: '14px', color: '#fff' }}>{feature.properties.name}</strong>
                                 <small style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                                    {feature.properties.postcode} {feature.properties.city}
+                                    {feature.properties.postcode} {feature.properties.city} ({feature.properties.context})
                                 </small>
                             </li>
                         ))}
